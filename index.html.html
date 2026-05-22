@@ -1,0 +1,1736 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>JAM ADVENTURE - Game 2D (15 Level Bebas Pilih)</title>
+    <!-- Tailwind CSS untuk UI Modern -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts untuk Font Retro/Modern -->
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka+One&family=Lexend:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Lexend', sans-serif;
+            user-select: none;
+            -webkit-user-select: none;
+            touch-action: none;
+        }
+        .title-font {
+            font-family: 'Fredoka One', cursive;
+        }
+        /* Mengamankan rasio layar penuh tanpa scrollbar */
+        html, body {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background-color: #0f172a;
+        }
+        #game-container {
+            aspect-ratio: 16 / 9;
+            min-height: 280px;
+        }
+        canvas {
+            image-rendering: pixelated;
+        }
+    </style>
+</head>
+<body class="flex flex-col items-center justify-center min-h-screen p-2 md:p-4">
+
+    <!-- Container Utama Game -->
+    <div id="game-container" class="relative w-full max-w-4xl bg-slate-900 overflow-hidden rounded-2xl shadow-2xl border-4 border-slate-700">
+        
+        <!-- Canvas Utama Game -->
+        <canvas id="gameCanvas" class="w-full h-full block"></canvas>
+
+        <!-- Elemen Audio Tersembunyi untuk Lagu Kustom -->
+        <audio id="bg-audio" loop class="hidden"></audio>
+
+        <!-- HUD Layar Atas -->
+        <div id="game-hud" class="absolute top-0 left-0 right-0 p-4 flex justify-between items-start pointer-events-none hidden">
+            <!-- Nyawa dan Koin -->
+            <div class="flex flex-col gap-2">
+                <div class="flex items-center gap-1.5 bg-slate-900/80 backdrop-blur-sm px-3 py-1.5 rounded-full border border-slate-600">
+                    <div id="hearts-container" class="flex gap-1">
+                        <!-- Diisi dinamis oleh JS -->
+                    </div>
+                </div>
+                <div class="flex items-center gap-2 bg-slate-900/80 backdrop-blur-sm px-3 py-1.5 rounded-full border border-slate-600 w-fit">
+                    <span class="text-yellow-400 text-lg animate-pulse">🪙</span>
+                    <span id="score-text" class="text-white font-bold text-sm md:text-base">0</span>
+                </div>
+            </div>
+
+            <!-- Level Info & Pilihan Musik Cepat -->
+            <div class="flex flex-col items-end gap-2">
+                <div class="bg-slate-900/80 backdrop-blur-sm px-4 py-1.5 rounded-full border border-slate-600 text-right flex items-center gap-2">
+                    <span id="level-title" class="text-emerald-400 font-bold text-sm md:text-base title-font uppercase">LEVEL 1 / 15</span>
+                    <!-- Tombol Kembali ke Menu Utama saat main -->
+                    <button id="hud-home-btn" class="pointer-events-auto bg-rose-600 hover:bg-rose-500 text-white text-[10px] px-2 py-1 rounded-md font-bold transition-all active:scale-95">
+                        MENU
+                    </button>
+                </div>
+                
+                <div class="flex items-center gap-2 pointer-events-auto">
+                    <!-- Selector Musik Langsung di HUD -->
+                    <select id="hud-music-select" class="bg-slate-800 text-white text-xs px-2 py-1.5 rounded-lg border border-slate-600 focus:outline-none">
+                        <option value="moombah">🎵 MoombahChill</option>
+                        <option value="adventure">🎵 Adventure Retro</option>
+                        <option value="mystic">🎵 Gua Misterius</option>
+                        <option value="custom" id="hud-custom-option" disabled>🎵 Musik Kustom (Belum Upload)</option>
+                    </select>
+                    
+                    <!-- Tombol Musik Mute/Unmute -->
+                    <button id="audio-toggle" class="bg-slate-800 hover:bg-slate-700 border border-slate-600 text-white p-2 rounded-full transition-all active:scale-95 shadow-lg">
+                        <span id="audio-icon">🔊</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- MENU MULAI (Start Menu dengan Pemilih Level dan Logo Sekolah) -->
+        <div id="start-menu" class="absolute inset-0 bg-slate-950/90 flex flex-col items-center justify-center p-4 md:p-6 text-center z-20 overflow-y-auto">
+            <div class="absolute inset-0 bg-cover bg-center opacity-10 pointer-events-none" style="background-image: url('https://images.unsplash.com/photo-1579783900882-c0d3dad7b119?q=80&w=1000&auto=format&fit=crop');"></div>
+            <div class="relative z-10 space-y-3 max-w-lg animate-fade-in flex flex-col items-center w-full">
+                
+                <!-- Tampilan Logo Sekolah Yayasan Cahaya Anak Papua -->
+                <div class="w-16 h-16 md:w-20 md:h-20 bg-white p-1 rounded-full shadow-lg border-2 border-emerald-400 animate-bounce">
+                    <img id="school-logo" src="logo sekolah.jpg" alt="Logo Yayasan Cahaya Anak Papua" class="w-full h-full object-contain rounded-full" onerror="this.style.display='none';">
+                </div>
+
+                <h1 class="text-3xl md:text-5xl text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 via-yellow-300 to-amber-500 title-font drop-shadow-md tracking-wide uppercase">
+                    JAM ADVENTURE
+                </h1>
+                <p class="text-slate-300 text-xs leading-relaxed max-w-md">
+                    Kumpulkan koin emas, lompati rintangan ekstrem, kalahkan musuh, dan taklukkan semua **15 Level** JAM ADVENTURE sesuka hatimu!
+                </p>
+
+                <!-- PANEL PEMILIH LEVEL (Level Selector) -->
+                <div class="bg-slate-900/95 border border-slate-700 p-3 rounded-xl w-full flex flex-col items-center gap-2 shadow-inner">
+                    <span class="text-xs text-emerald-400 font-bold">🗺️ Pilih Level yang Ingin Dimainkan:</span>
+                    <div id="level-buttons-container" class="grid grid-cols-5 gap-1.5 w-full max-w-sm">
+                        <!-- Tombol Level 1-15 akan diisi secara dinamis oleh JavaScript -->
+                    </div>
+                </div>
+
+                <!-- Panel Pemilihan Musik -->
+                <div class="bg-slate-900/95 border border-slate-700 p-3 rounded-xl w-full flex flex-col items-center gap-2 shadow-inner">
+                    <span class="text-xs text-yellow-400 font-bold">🎵 Pengaturan & Pilih Musik Game</span>
+                    
+                    <div class="w-full flex items-center gap-2">
+                        <select id="menu-music-select" class="bg-slate-800 text-white text-xs p-1.5 rounded-lg border border-slate-600 focus:outline-none w-1/2">
+                            <option value="moombah">🌴 MoombahChill (Santai)</option>
+                            <option value="adventure">🏃 Petualangan (Upbeat)</option>
+                            <option value="mystic">🦇 Gua (Misterius)</option>
+                            <option value="custom" id="menu-custom-option" disabled>🎵 Musik Kustom</option>
+                        </select>
+                        <div class="w-1/2">
+                            <label for="custom-audio-upload" class="cursor-pointer block w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white text-[10px] font-bold py-1.5 rounded-lg text-center transition-all active:scale-95 shadow-md">
+                                Upload Musik (.mp3/.mp4)
+                            </label>
+                            <input type="file" id="custom-audio-upload" accept="audio/*,video/*" class="hidden">
+                        </div>
+                    </div>
+                    <span id="upload-status-text" class="text-[9px] text-slate-400 text-center">Atau mainkan lagu sintetis bawaan di samping!</span>
+                </div>
+
+                <div class="pt-1">
+                    <button id="start-btn" class="title-font text-lg md:text-xl bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-white px-10 py-3 rounded-full shadow-lg shadow-emerald-900/40 border-b-4 border-emerald-700 active:border-b-0 hover:translate-y-[2px] active:translate-y-[4px] transition-all duration-150">
+                        MULAI PETUALANGAN
+                    </button>
+                </div>
+                <div class="text-[10px] text-slate-500 flex justify-center gap-4 border-t border-slate-800/85 pt-2 w-full">
+                    <span>💻 Keyboard: A/D/Panah (Gerak), Space/W (Lompat)</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- LAYAR NAIK LEVEL (Level Up) -->
+        <div id="level-success-screen" class="absolute inset-0 bg-slate-950/85 backdrop-blur-md flex flex-col items-center justify-center p-6 text-center z-10 hidden">
+            <div class="space-y-6 max-w-sm">
+                <div class="text-6xl animate-bounce">🏆</div>
+                <h2 id="level-complete-title" class="text-3xl md:text-4xl text-yellow-400 title-font">LEVEL SELESAI!</h2>
+                <p id="level-complete-desc" class="text-slate-300 text-sm md:text-base">Luar biasa! Persiapkan diri untuk tantangan berikutnya yang lebih ekstrem.</p>
+                <div class="flex gap-4 justify-center">
+                    <button id="next-level-btn" class="title-font text-sm md:text-base bg-gradient-to-r from-yellow-500 to-amber-600 hover:from-yellow-400 hover:to-amber-500 text-white px-6 py-2.5 rounded-full shadow-lg border-b-4 border-amber-700 active:border-b-0 transition-all">
+                        LANJUT LEVEL BERIKUTNYA
+                    </button>
+                    <button id="success-home-btn" class="title-font text-sm md:text-base bg-slate-700 hover:bg-slate-600 text-white px-6 py-2.5 rounded-full shadow-lg transition-all">
+                        PILIH LEVEL LAIN
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- LAYAR GAME OVER (Kalah) -->
+        <div id="game-over-screen" class="absolute inset-0 bg-rose-950/90 backdrop-blur-md flex flex-col items-center justify-center p-6 text-center z-10 hidden">
+            <div class="space-y-6 max-w-sm">
+                <div class="text-6xl animate-pulse">💀</div>
+                <h2 class="text-3xl md:text-5xl text-rose-500 title-font uppercase">Karakter Gugur!</h2>
+                <p class="text-rose-200 text-sm md:text-base">Kegagalan adalah tangga menuju kemenangan. Coba lagi!</p>
+                <div class="bg-rose-900/40 border border-rose-700/50 p-3 rounded-lg">
+                    <span class="text-rose-300">Skor Terakhir:</span>
+                    <span id="final-score-text" class="text-white font-bold ml-1">0</span>
+                </div>
+                <div class="flex gap-4 justify-center">
+                    <button id="restart-btn" class="title-font text-sm md:text-base bg-gradient-to-r from-rose-500 to-red-600 hover:from-rose-400 hover:to-red-500 text-white px-6 py-2.5 rounded-full shadow-lg border-b-4 border-red-800 active:border-b-0 transition-all">
+                        COBA LAGI
+                    </button>
+                    <button id="fail-home-btn" class="title-font text-sm md:text-base bg-slate-700 hover:bg-slate-600 text-white px-6 py-2.5 rounded-full shadow-lg transition-all">
+                        PILIH LEVEL LAIN
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- LAYAR KEMENANGAN AKHIR (Game Clear) -->
+        <div id="game-clear-screen" class="absolute inset-0 bg-slate-950/95 backdrop-blur-md flex flex-col items-center justify-center p-6 text-center z-10 hidden">
+            <div class="space-y-6 max-w-md">
+                <div class="text-7xl animate-bounce">👑</div>
+                <h2 class="text-3xl md:text-5xl text-yellow-400 title-font uppercase tracking-wide">Pahlawan Nusantara!</h2>
+                <p class="text-slate-300 text-sm md:text-base">Selamat! Kamu telah berhasil menaklukkan seluruh **15 level** rintangan ekstrem dan menyelamatkan mahkota emas JAM ADVENTURE!</p>
+                <div class="bg-slate-800/80 border border-slate-700 p-4 rounded-xl flex justify-around">
+                    <div>
+                        <span class="text-slate-400 block text-xs">SKOR AKHIR</span>
+                        <span id="clear-score-text" class="text-yellow-400 font-bold text-2xl">0</span>
+                    </div>
+                    <div class="border-l border-slate-700"></div>
+                    <div>
+                        <span class="text-slate-400 block text-xs">PRESTASI</span>
+                        <span class="text-emerald-400 font-bold text-xl md:text-2xl">LEGENDARIS</span>
+                    </div>
+                </div>
+                <div class="flex gap-4 justify-center">
+                    <button id="play-again-btn" class="title-font text-sm md:text-base bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-white px-6 py-2.5 rounded-full shadow-lg border-b-4 border-teal-800 active:border-b-0 transition-all">
+                        ULANG LEVEL 1
+                    </button>
+                    <button id="clear-home-btn" class="title-font text-sm md:text-base bg-slate-700 hover:bg-slate-600 text-white px-6 py-2.5 rounded-full shadow-lg transition-all">
+                        PILIH LEVEL LAIN
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- PANEL KONTROL VIRTUAL (Hanya tampil di HP/Tablet) -->
+        <div id="touch-controls" class="absolute bottom-4 left-4 right-4 flex justify-between items-center pointer-events-none md:hidden hidden">
+            <!-- Tombol Navigasi Kiri & Kanan -->
+            <div class="flex gap-4 pointer-events-auto">
+                <button id="btn-left" class="w-14 h-14 bg-slate-800/80 active:bg-slate-700 border-2 border-slate-600 active:border-emerald-500 text-white text-2xl flex items-center justify-center rounded-2xl shadow-lg transition-all active:scale-95 select-none">
+                    ◀
+                </button>
+                <button id="btn-right" class="w-14 h-14 bg-slate-800/80 active:bg-slate-700 border-2 border-slate-600 active:border-emerald-500 text-white text-2xl flex items-center justify-center rounded-2xl shadow-lg transition-all active:scale-95 select-none">
+                    ▶
+                </button>
+            </div>
+            <!-- Tombol Lompat -->
+            <div class="pointer-events-auto">
+                <button id="btn-jump" class="w-16 h-16 bg-emerald-600/80 active:bg-emerald-500 border-2 border-emerald-400 active:border-white text-white text-xl flex flex-col items-center justify-center rounded-full shadow-lg transition-all active:scale-95 select-none font-bold">
+                    <span>UP</span>
+                </button>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- JavaScript Game Logic -->
+    <script>
+        // --- PRE-LOADING LOGO SEKOLAH UNTUK CANVAS ---
+        const schoolLogoImg = new Image();
+        schoolLogoImg.src = "logo sekolah.jpg";
+        let logoLoaded = false;
+        schoolLogoImg.onload = function() {
+            logoLoaded = true;
+        };
+
+        // --- SYNTHESIZER AUDIO (Web Audio API) ---
+        const AudioEngine = {
+            ctx: null,
+            enabled: true,
+            bgmInterval: null,
+            useCustomBGM: false,
+            currentTrack: 'moombah', // moombah, adventure, mystic, custom
+
+            init() {
+                try {
+                    if (!this.ctx) {
+                        this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+                    }
+                    if (this.ctx && this.ctx.state === 'suspended') {
+                        this.ctx.resume();
+                    }
+                } catch (e) {
+                    console.warn("Audio tidak didukung oleh browser ini:", e);
+                }
+            },
+
+            setTrack(trackName) {
+                this.currentTrack = trackName;
+                if (trackName === 'custom') {
+                    this.useCustomBGM = true;
+                } else {
+                    this.useCustomBGM = false;
+                }
+
+                // Jika sedang bermain, langsung putar lagu baru
+                if (gameState === 'PLAYING') {
+                    this.startBGM();
+                }
+            },
+
+            toggle() {
+                this.enabled = !this.enabled;
+                const customAudio = document.getElementById('bg-audio');
+                
+                if (!this.enabled) {
+                    this.stopBGM();
+                    if (customAudio) {
+                        customAudio.pause();
+                    }
+                } else {
+                    if (this.useCustomBGM && customAudio && customAudio.src) {
+                        customAudio.play().catch(e => console.log("Gagal memutar audio kustom:", e));
+                    } else {
+                        this.startBGM();
+                    }
+                }
+                return this.enabled;
+            },
+
+            playJump() {
+                if (!this.enabled || !this.ctx) return;
+                this.init();
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+
+                osc.type = 'triangle';
+                osc.frequency.setValueAtTime(150, this.ctx.currentTime);
+                osc.frequency.exponentialRampToValueAtTime(450, this.ctx.currentTime + 0.15);
+
+                gain.gain.setValueAtTime(0.15, this.ctx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.15);
+
+                osc.start();
+                osc.stop(this.ctx.currentTime + 0.15);
+            },
+
+            playCoin() {
+                if (!this.enabled || !this.ctx) return;
+                this.init();
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(587.33, this.ctx.currentTime);
+                osc.frequency.setValueAtTime(880, this.ctx.currentTime + 0.08);
+
+                gain.gain.setValueAtTime(0.1, this.ctx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.25);
+
+                osc.start();
+                osc.stop(this.ctx.currentTime + 0.25);
+            },
+
+            playHurt() {
+                if (!this.enabled || !this.ctx) return;
+                this.init();
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(220, this.ctx.currentTime);
+                osc.frequency.linearRampToValueAtTime(80, this.ctx.currentTime + 0.3);
+
+                gain.gain.setValueAtTime(0.2, this.ctx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.3);
+
+                osc.start();
+                osc.stop(this.ctx.currentTime + 0.3);
+            },
+
+            playLevelUp() {
+                if (!this.enabled || !this.ctx) return;
+                this.init();
+                const notes = [261.63, 329.63, 392.00, 523.25];
+                notes.forEach((freq, idx) => {
+                    setTimeout(() => {
+                        if (!this.enabled || !this.ctx) return;
+                        const osc = this.ctx.createOscillator();
+                        const gain = this.ctx.createGain();
+                        osc.connect(gain);
+                        gain.connect(this.ctx.destination);
+                        osc.type = 'sine';
+                        osc.frequency.setValueAtTime(freq, this.ctx.currentTime);
+                        gain.gain.setValueAtTime(0.12, this.ctx.currentTime);
+                        gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.2);
+                        osc.start();
+                        osc.stop(this.ctx.currentTime + 0.2);
+                    }, idx * 100);
+                });
+            },
+
+            startBGM() {
+                if (!this.enabled) return;
+                this.init();
+                this.stopBGM();
+
+                // 1. Pemutar Musik File Kustom (Lagu Say Less / file pilihan user)
+                if (this.useCustomBGM) {
+                    const customAudio = document.getElementById('bg-audio');
+                    if (customAudio && customAudio.src) {
+                        customAudio.play().catch(e => console.log("Gagal memutar audio kustom:", e));
+                    }
+                    return;
+                }
+
+                let step = 0;
+                let melody = [];
+                let bass = [];
+                let speedMs = 150; // default tempo
+
+                // 2. Pemutar Musik Synthesizer Berdasarkan Track yang Terpilih
+                if (this.currentTrack === 'moombah') {
+                    // TRACK MOOMBAHCHILL (Chill Tropical Rhythm, ~110 BPM)
+                    melody = [
+                        392.00, 0, 440.00, 493.88, 0, 440.00, 392.00, 0,
+                        440.00, 0, 493.88, 587.33, 0, 493.88, 440.00, 0,
+                        392.00, 0, 440.00, 493.88, 0, 440.00, 392.00, 0,
+                        349.23, 0, 349.23, 392.00, 293.66, 0, 261.63, 0
+                    ];
+                    bass = [
+                        130.81, 0, 130.81, 196.00, 0, 196.00, 130.81, 0,
+                        146.83, 0, 146.83, 220.00, 0, 220.00, 146.83, 0,
+                        164.81, 0, 164.81, 220.00, 0, 220.00, 164.81, 0,
+                        174.61, 0, 174.61, 196.00, 0, 196.00, 130.81, 0
+                    ];
+                    speedMs = 136; // Moombahton tempo
+                } else if (this.currentTrack === 'adventure') {
+                    // TRACK RETRO ADVENTURE (Upbeat & Fast, ~130 BPM)
+                    melody = [
+                        261.63, 329.63, 392.00, 523.25, 392.00, 329.63, 349.23, 440.00,
+                        293.66, 349.23, 440.00, 587.33, 440.00, 349.23, 392.00, 493.88,
+                        329.63, 392.00, 493.88, 659.25, 493.88, 392.00, 440.00, 523.25,
+                        349.23, 440.00, 523.25, 698.46, 587.33, 493.88, 523.25, 0
+                    ];
+                    bass = [
+                        130.81, 130.81, 130.81, 130.81, 146.83, 146.83, 146.83, 146.83,
+                        164.81, 164.81, 164.81, 164.81, 174.61, 174.61, 174.61, 174.61,
+                        130.81, 130.81, 130.81, 130.81, 146.83, 146.83, 146.83, 146.83,
+                        174.61, 174.61, 196.00, 196.00, 130.81, 130.81, 130.81, 130.81
+                    ];
+                    speedMs = 115;
+                } else if (this.currentTrack === 'mystic') {
+                    // TRACK MYSTIC DUNGEON (Atmosferik Misterius, Nada Lambat)
+                    melody = [
+                        220.00, 0, 261.63, 0, 329.63, 0, 293.66, 0,
+                        220.00, 0, 261.63, 0, 392.00, 0, 329.63, 0,
+                        349.23, 0, 440.00, 0, 523.25, 0, 493.88, 0,
+                        220.00, 0, 261.63, 0, 196.00, 0, 220.00, 0
+                    ];
+                    bass = [
+                        110.00, 110.00, 110.00, 110.00, 110.00, 110.00, 110.00, 110.00,
+                        98.00, 98.00, 98.00, 98.00, 98.00, 98.00, 98.00, 98.00,
+                        87.31, 87.31, 87.31, 87.31, 98.00, 98.00, 98.00, 98.00,
+                        110.00, 110.00, 110.00, 110.00, 73.42, 73.42, 110.00, 110.00
+                    ];
+                    speedMs = 200;
+                }
+
+                this.bgmInterval = setInterval(() => {
+                    if (!this.enabled || !this.ctx || this.useCustomBGM) return;
+                    if (this.ctx.state === 'suspended') {
+                        this.ctx.resume();
+                        return;
+                    }
+
+                    const currentStep = step % melody.length;
+
+                    // Lead Melody (Triangle Wave)
+                    const melodyFreq = melody[currentStep];
+                    if (melodyFreq > 0) {
+                        const oscMelody = this.ctx.createOscillator();
+                        const gainMelody = this.ctx.createGain();
+                        
+                        oscMelody.connect(gainMelody);
+                        gainMelody.connect(this.ctx.destination);
+                        
+                        oscMelody.type = 'triangle';
+                        oscMelody.frequency.setValueAtTime(melodyFreq, this.ctx.currentTime);
+                        
+                        gainMelody.gain.setValueAtTime(0.04, this.ctx.currentTime);
+                        gainMelody.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + (speedMs/1000) * 1.5);
+                        
+                        oscMelody.start();
+                        oscMelody.stop(this.ctx.currentTime + (speedMs/1000) * 1.5);
+                    }
+
+                    // Bassline (Sine Wave)
+                    const bassFreq = bass[currentStep];
+                    if (bassFreq > 0) {
+                        const oscBass = this.ctx.createOscillator();
+                        const gainBass = this.ctx.createGain();
+                        
+                        oscBass.connect(gainBass);
+                        gainBass.connect(this.ctx.destination);
+                        
+                        oscBass.type = 'sine';
+                        oscBass.frequency.setValueAtTime(bassFreq, this.ctx.currentTime);
+                        
+                        gainBass.gain.setValueAtTime(0.06, this.ctx.currentTime);
+                        gainBass.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + (speedMs/1000) * 1.8);
+                        
+                        oscBass.start();
+                        oscBass.stop(this.ctx.currentTime + (speedMs/1000) * 1.8);
+                    }
+
+                    // Beats Percussion
+                    if (this.currentTrack === 'moombah') {
+                        const beatPosition = step % 16;
+                        let isKick = (beatPosition === 0 || beatPosition === 8);
+                        let isSnare = (beatPosition === 3 || beatPosition === 6 || beatPosition === 11 || beatPosition === 14);
+
+                        if (isKick) {
+                            this.triggerKick();
+                        } else if (isSnare) {
+                            this.triggerSnare();
+                        }
+                    } else {
+                        // Pola drum 4-on-the-floor standard untuk petualangan/mystic
+                        if (currentStep % 4 === 0) {
+                            this.triggerKick();
+                        }
+                    }
+                    
+                    step++;
+                }, speedMs);
+            },
+
+            triggerKick() {
+                const oscKick = this.ctx.createOscillator();
+                const gainKick = this.ctx.createGain();
+                oscKick.connect(gainKick);
+                gainKick.connect(this.ctx.destination);
+                oscKick.type = 'sine';
+                oscKick.frequency.setValueAtTime(120, this.ctx.currentTime);
+                oscKick.frequency.exponentialRampToValueAtTime(20, this.ctx.currentTime + 0.1);
+                gainKick.gain.setValueAtTime(0.1, this.ctx.currentTime);
+                gainKick.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 0.1);
+                oscKick.start();
+                oscKick.stop(this.ctx.currentTime + 0.1);
+            },
+
+            triggerSnare() {
+                const oscSnare = this.ctx.createOscillator();
+                const gainSnare = this.ctx.createGain();
+                oscSnare.connect(gainSnare);
+                gainSnare.connect(this.ctx.destination);
+                oscSnare.type = 'triangle';
+                oscSnare.frequency.setValueAtTime(280, this.ctx.currentTime);
+                oscSnare.frequency.exponentialRampToValueAtTime(80, this.ctx.currentTime + 0.06);
+                gainSnare.gain.setValueAtTime(0.03, this.ctx.currentTime);
+                gainSnare.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 0.06);
+                oscSnare.start();
+                oscSnare.stop(this.ctx.currentTime + 0.06);
+            },
+
+            stopBGM() {
+                if (this.bgmInterval) {
+                    clearInterval(this.bgmInterval);
+                    this.bgmInterval = null;
+                }
+                const customAudio = document.getElementById('bg-audio');
+                if (customAudio) {
+                    customAudio.pause();
+                }
+            }
+        };
+
+        // --- KONFIGURASI DAN GAME STATE ---
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+
+        const VIRTUAL_WIDTH = 960;
+        const VIRTUAL_HEIGHT = 540;
+
+        let scaleX = 1;
+        let scaleY = 1;
+
+        let gameState = 'START_MENU'; 
+        let currentLevel = 1;
+        const maxLevel = 15; 
+        let score = 0;
+        let lives = 3;
+        const maxLives = 3;
+
+        const keys = {
+            left: false,
+            right: false,
+            jump: false
+        };
+
+        // 8 Tema visual berbeda bergantian setiap 2 level sekali
+        const themeConfig = {
+            1: { // Level 1-2: Hutan Hijau
+                sky: '#0f172a',
+                backLayer: '#064e3b',
+                midLayer: '#0f766e',
+                foreLayer: '#10b981',
+                groundColor: '#047857'
+            },
+            2: { // Level 3-4: Gua Misterius
+                sky: '#020617',
+                backLayer: '#1e1b4b',
+                midLayer: '#311042',
+                foreLayer: '#581c87',
+                groundColor: '#3b0764'
+            },
+            3: { // Level 5-6: Lembah Salju
+                sky: '#082f49',
+                backLayer: '#0369a1',
+                midLayer: '#0284c7',
+                foreLayer: '#38bdf8',
+                groundColor: '#0284c7'
+            },
+            4: { // Level 7-8: Kastil Api
+                sky: '#180202',
+                backLayer: '#450a0a',
+                midLayer: '#7f1d1d',
+                foreLayer: '#f43f5e',
+                groundColor: '#be123c'
+            },
+            5: { // Level 9-10: Dimensi Kosmik
+                sky: '#090514',
+                backLayer: '#1e0b36',
+                midLayer: '#3b0764',
+                foreLayer: '#d946ef',
+                groundColor: '#701a75'
+            },
+            6: { // Level 11-12: Gurun Pasir E
+                sky: '#1c1917',
+                backLayer: '#78350f',
+                midLayer: '#b45309',
+                foreLayer: '#f59e0b',
+                groundColor: '#d97706'
+            },
+            7: { // Level 13-14: Lembah Petir
+                sky: '#0f172a',
+                backLayer: '#1e293b',
+                midLayer: '#334155',
+                foreLayer: '#a855f7',
+                groundColor: '#6b21a8'
+            },
+            8: { // Level 15: Gerbang Legenda
+                sky: '#020617',
+                backLayer: '#1e1b4b',
+                midLayer: '#4c1d95',
+                foreLayer: '#f43f5e',
+                groundColor: '#9d174d'
+            }
+        };
+
+        function getThemeForLevel(level) {
+            if (level <= 2) return themeConfig[1];
+            if (level <= 4) return themeConfig[2];
+            if (level <= 6) return themeConfig[3];
+            if (level <= 8) return themeConfig[4];
+            if (level <= 10) return themeConfig[5];
+            if (level <= 12) return themeConfig[6];
+            if (level <= 14) return themeConfig[7];
+            return themeConfig[8]; 
+        }
+
+        // Kelas Pemain (Hero)
+        class Player {
+            constructor() {
+                this.width = 32;
+                this.height = 48;
+                this.x = 80;
+                this.y = VIRTUAL_HEIGHT - 150;
+                this.vx = 0;
+                this.vy = 0;
+                this.speed = 6.5;
+                this.gravity = 0.5;
+                this.jumpStrength = -11.5;
+                this.isGrounded = false;
+                this.jumpCount = 0;
+                this.maxJumps = 2; 
+                this.invulnTimer = 0; 
+                this.animationFrame = 0;
+                this.facingRight = true;
+                this.isWalking = false;
+            }
+
+            reset() {
+                this.x = 80;
+                this.y = VIRTUAL_HEIGHT - 150;
+                this.vx = 0;
+                this.vy = 0;
+                this.isGrounded = false;
+                this.jumpCount = 0;
+                this.invulnTimer = 0;
+            }
+
+            update() {
+                if (keys.left) {
+                    this.vx = -this.speed;
+                    this.facingRight = false;
+                    this.isWalking = true;
+                } else if (keys.right) {
+                    this.vx = this.speed;
+                    this.facingRight = true;
+                    this.isWalking = true;
+                } else {
+                    this.vx = 0;
+                    this.isWalking = false;
+                }
+
+                this.vy += this.gravity;
+                if (this.vy > 12) this.vy = 12;
+
+                this.x += this.vx;
+                this.y += this.vy;
+
+                if (this.x < 0) this.x = 0;
+
+                if (this.invulnTimer > 0) {
+                    this.invulnTimer--;
+                }
+
+                if (this.isWalking && this.isGrounded) {
+                    this.animationFrame += 0.15;
+                } else {
+                    this.animationFrame = 0;
+                }
+            }
+
+            jump() {
+                if (this.isGrounded) {
+                    this.vy = this.jumpStrength;
+                    this.isGrounded = false;
+                    this.jumpCount = 1;
+                    AudioEngine.playJump();
+                    spawnParticles(this.x + this.width/2, this.y + this.height, '#e2e8f0', 8);
+                } else if (this.jumpCount < this.maxJumps) {
+                    this.vy = this.jumpStrength * 0.95; 
+                    this.jumpCount++;
+                    AudioEngine.playJump();
+                    spawnParticles(this.x + this.width/2, this.y + this.height, '#38bdf8', 10);
+                }
+            }
+
+            draw() {
+                if (this.invulnTimer > 0 && Math.floor(this.invulnTimer / 4) % 2 === 0) {
+                    return;
+                }
+
+                ctx.save();
+                ctx.translate(this.x + this.width / 2, this.y + this.height / 2);
+
+                if (!this.facingRight) {
+                    ctx.scale(-1, 1);
+                }
+
+                // Sepatu
+                ctx.fillStyle = '#0f172a'; 
+                let walkOffset = Math.sin(this.animationFrame) * 6;
+                ctx.fillRect(-10, 16 + (this.isGrounded ? Math.abs(walkOffset)/2 : 0), 8, 8);
+                ctx.fillRect(2, 16 - (this.isGrounded ? Math.abs(walkOffset)/2 : 0), 8, 8);
+
+                // Celana
+                ctx.fillStyle = '#1e3a8a';
+                ctx.fillRect(-12, 8, 24, 10);
+
+                // Badan (Baju)
+                ctx.fillStyle = '#ef4444'; 
+                ctx.fillRect(-14, -14, 28, 22);
+
+                // Kepala / Helm
+                ctx.fillStyle = '#fde047'; 
+                ctx.fillRect(-12, -34, 24, 20);
+                
+                // Wajah
+                ctx.fillStyle = '#ffedd5';
+                ctx.fillRect(-10, -28, 20, 12);
+
+                // Mata
+                ctx.fillStyle = '#0f172a';
+                ctx.fillRect(2, -26, 4, 4);
+
+                // Kacamata pelindung
+                ctx.fillStyle = '#0284c7'; 
+                ctx.fillRect(0, -32, 10, 5);
+                ctx.fillStyle = '#475569'; 
+                ctx.fillRect(-12, -32, 12, 3);
+
+                // Syal
+                ctx.fillStyle = '#d97706';
+                ctx.fillRect(-14, -14, 28, 4);
+
+                ctx.restore();
+            }
+        }
+
+        // --- ENTITAS LAIN ---
+        class Platform {
+            constructor(x, y, width, height, isMoving = false, moveRange = 100, moveSpeed = 1.5) {
+                this.x = x;
+                this.y = y;
+                this.width = width;
+                this.height = height;
+                this.isMoving = isMoving;
+                this.initialX = x;
+                this.moveRange = moveRange;
+                this.moveSpeed = moveSpeed;
+                this.direction = 1;
+            }
+
+            update() {
+                if (this.isMoving) {
+                    this.x += this.moveSpeed * this.direction;
+                    if (Math.abs(this.x - this.initialX) > this.moveRange) {
+                        this.direction *= -1;
+                    }
+                }
+            }
+
+            draw() {
+                const theme = getThemeForLevel(currentLevel);
+                ctx.fillStyle = theme.midLayer;
+                ctx.fillRect(this.x, this.y, this.width, this.height);
+
+                ctx.fillStyle = theme.foreLayer;
+                ctx.fillRect(this.x, this.y, this.width, 6);
+
+                ctx.fillStyle = 'rgba(0,0,0,0.15)';
+                for (let i = 16; i < this.width; i += 32) {
+                    ctx.fillRect(this.x + i, this.y + 6, 8, this.height - 6);
+                }
+            }
+        }
+
+        class Coin {
+            constructor(x, y) {
+                this.x = x;
+                this.y = y;
+                this.width = 16;
+                this.height = 16;
+                this.baseY = y;
+                this.hoverOffset = Math.random() * 100;
+                this.collected = false;
+                this.rotation = Math.random() * Math.PI;
+            }
+
+            update() {
+                this.hoverOffset += 0.05;
+                this.y = this.baseY + Math.sin(this.hoverOffset) * 6;
+                this.rotation += 0.04;
+            }
+
+            draw() {
+                ctx.save();
+                ctx.translate(this.x + 8, this.y + 8);
+                ctx.scale(Math.sin(this.rotation), 1);
+
+                ctx.beginPath();
+                ctx.arc(0, 0, 8, 0, Math.PI * 2);
+                ctx.fillStyle = '#eab308';
+                ctx.fill();
+
+                ctx.beginPath();
+                ctx.arc(0, 0, 5, 0, Math.PI * 2);
+                ctx.fillStyle = '#fef08a';
+                ctx.fill();
+
+                ctx.restore();
+            }
+        }
+
+        class Enemy {
+            constructor(x, y, type = 'slime', patrolRange = 120, speed = 1.2) {
+                this.x = x;
+                this.y = y;
+                this.initialX = x;
+                this.type = type; 
+                this.patrolRange = patrolRange;
+                this.speed = speed;
+                this.direction = 1;
+                this.width = type === 'bat' ? 28 : 32;
+                this.height = type === 'bat' ? 20 : 24;
+                this.animFrame = 0;
+            }
+
+            update() {
+                this.x += this.speed * this.direction;
+                if (Math.abs(this.x - this.initialX) > this.patrolRange) {
+                    this.direction *= -1;
+                }
+                this.animFrame += 0.1;
+            }
+
+            draw() {
+                ctx.save();
+                ctx.translate(this.x + this.width / 2, this.y + this.height / 2);
+
+                if (this.direction > 0) {
+                    ctx.scale(-1, 1);
+                }
+
+                if (this.type === 'slime') {
+                    let squash = Math.sin(this.animFrame) * 3;
+                    ctx.fillStyle = '#ec4899';
+
+                    ctx.beginPath();
+                    ctx.ellipse(0, 12 + squash / 2, 16 + squash, 12 - squash, 0, 0, Math.PI * 2);
+                    ctx.fill();
+
+                    ctx.fillStyle = '#ffffff';
+                    ctx.fillRect(4, 4 + squash/2, 4, 4);
+                    ctx.fillRect(-8, 4 + squash/2, 4, 4);
+                    ctx.fillStyle = '#000000';
+                    ctx.fillRect(5, 5 + squash/2, 2, 2);
+                    ctx.fillRect(-7, 5 + squash/2, 2, 2);
+
+                } else if (this.type === 'bat') {
+                    let flap = Math.sin(this.animFrame * 1.5) * 8;
+                    ctx.fillStyle = '#6366f1';
+
+                    ctx.beginPath();
+                    ctx.arc(0, 0, 8, 0, Math.PI * 2);
+                    ctx.fill();
+
+                    ctx.beginPath();
+                    ctx.moveTo(-8, 0);
+                    ctx.lineTo(-24, -flap);
+                    ctx.lineTo(-12, 6);
+                    ctx.closePath();
+                    ctx.fill();
+
+                    ctx.beginPath();
+                    ctx.moveTo(8, 0);
+                    ctx.lineTo(24, -flap);
+                    ctx.lineTo(12, 6);
+                    ctx.closePath();
+                    ctx.fill();
+
+                    ctx.fillStyle = '#ef4444';
+                    ctx.fillRect(2, -2, 2, 2);
+                    ctx.fillRect(-4, -2, 2, 2);
+                }
+
+                ctx.restore();
+            }
+        }
+
+        class Spike {
+            constructor(x, y, width = 32, isMoving = false, moveRange = 60) {
+                this.x = x;
+                this.y = y;
+                this.width = width;
+                this.height = 18;
+                this.isMoving = isMoving;
+                this.initialY = y;
+                this.moveRange = moveRange;
+                this.speed = 0.8;
+                this.direction = 1;
+                this.animTimer = Math.random() * 100;
+            }
+
+            update() {
+                if (this.isMoving) {
+                    this.animTimer += 0.03;
+                    this.y = this.initialY + Math.sin(this.animTimer) * this.moveRange;
+                }
+            }
+
+            draw() {
+                ctx.fillStyle = '#94a3b8';
+                let spikeCount = this.width / 16;
+
+                for (let i = 0; i < spikeCount; i++) {
+                    let curX = this.x + i * 16;
+                    ctx.beginPath();
+                    ctx.moveTo(curX, this.y + this.height);
+                    ctx.lineTo(curX + 8, this.y);
+                    ctx.lineTo(curX + 16, this.y + this.height);
+                    ctx.closePath();
+                    ctx.fill();
+
+                    ctx.fillStyle = '#475569';
+                    ctx.beginPath();
+                    ctx.moveTo(curX + 8, this.y);
+                    ctx.lineTo(curX + 16, this.y + this.height);
+                    ctx.lineTo(curX + 8, this.y + this.height);
+                    ctx.closePath();
+                    ctx.fill();
+                    ctx.fillStyle = '#94a3b8';
+                }
+            }
+        }
+
+        class Flag {
+            constructor(x, y) {
+                this.x = x;
+                this.y = y;
+                this.width = 32;
+                this.height = 80;
+                this.animOffset = 0;
+            }
+
+            update() {
+                this.animOffset += 0.1;
+            }
+
+            draw() {
+                ctx.fillStyle = '#cbd5e1';
+                ctx.fillRect(this.x, this.y, 6, this.height);
+
+                let wave = Math.sin(this.animOffset) * 4;
+
+                ctx.fillStyle = '#ef4444';
+                ctx.beginPath();
+                ctx.moveTo(this.x + 6, this.y + 4);
+                ctx.quadraticCurveTo(this.x + 18, this.y + 4 + wave, this.x + 36, this.y + 4);
+                ctx.lineTo(this.x + 36, this.y + 16 + wave);
+                ctx.quadraticCurveTo(this.x + 18, this.y + 16 + wave * 0.5, this.x + 6, this.y + 16);
+                ctx.closePath();
+                ctx.fill();
+
+                ctx.fillStyle = '#ffffff';
+                ctx.beginPath();
+                ctx.moveTo(this.x + 6, this.y + 16);
+                ctx.quadraticCurveTo(this.x + 18, this.y + 16 + wave * 0.5, this.x + 36, this.y + 16 + wave);
+                ctx.lineTo(this.x + 36, this.y + 28 + wave);
+                ctx.quadraticCurveTo(this.x + 18, this.y + 28, this.x + 6, this.y + 28);
+                ctx.closePath();
+                ctx.fill();
+            }
+        }
+
+        class Particle {
+            constructor(x, y, color) {
+                this.x = x;
+                this.y = y;
+                this.vx = (Math.random() - 0.5) * 6;
+                this.vy = (Math.random() - 0.5) * 6 - 2;
+                this.color = color;
+                this.radius = Math.random() * 4 + 2;
+                this.alpha = 1;
+                this.decay = Math.random() * 0.02 + 0.01;
+            }
+
+            update() {
+                this.x += this.vx;
+                this.y += this.vy;
+                this.vy += 0.1;
+                this.alpha -= this.decay;
+            }
+
+            draw() {
+                ctx.save();
+                ctx.globalAlpha = this.alpha;
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+                ctx.fillStyle = this.color;
+                ctx.fill();
+                ctx.restore();
+            }
+        }
+
+        let particles = [];
+        function spawnParticles(x, y, color, count) {
+            for (let i = 0; i < count; i++) {
+                particles.push(new Particle(x, y, color));
+            }
+        }
+
+        // --- DATABASE LEVEL (MENDUKUNG 15 LEVEL SECARA PROSEDURAL YANG DINAMIS) ---
+        let platforms = [];
+        let coins = [];
+        let enemies = [];
+        let spikes = [];
+        let flag = null;
+        let mapWidth = 3000;
+
+        function loadLevel(levelNum) {
+            platforms = [];
+            coins = [];
+            enemies = [];
+            spikes = [];
+            particles = [];
+
+            const levelTitleEl = document.getElementById('level-title');
+            if (levelTitleEl) {
+                levelTitleEl.textContent = `LEVEL ${levelNum} / 15`;
+            }
+
+            // Penskalaan Panjang Peta Berdasarkan Level
+            mapWidth = 2000 + (levelNum * 400); 
+
+            // Zona Mulai Aman (Safe Start Zone)
+            platforms.push(new Platform(0, VIRTUAL_HEIGHT - 40, 450, 40));
+
+            let currentX = 450;
+            
+            // Seed Angka Deterministik Sesuai Level Agar Konsisten
+            let seed = levelNum * 47.33;
+            function pseudoRandom() {
+                let x = Math.sin(seed++) * 10000;
+                return x - Math.floor(x);
+            }
+
+            // Membangun segmen-segmen tantangan secara dinamis
+            while (currentX < mapWidth - 450) {
+                let rand = pseudoRandom();
+                
+                // Jarak jurang bertambah seiring peningkatan level (Level tinggi = melompat lebih jauh!)
+                let gapWidth = 100 + Math.min(levelNum * 12, 140); 
+                
+                if (rand < 0.25) {
+                    // Segmen 1: Jalanan Rata dengan Slime dan Duri Statis
+                    let segmentWidth = 200 + Math.floor(pseudoRandom() * 200);
+                    platforms.push(new Platform(currentX, VIRTUAL_HEIGHT - 40, segmentWidth, 40));
+                    
+                    // Frekuensi musuh Slime bertambah & lebih cepat di level tinggi
+                    if (pseudoRandom() < 0.35 + (levelNum * 0.05)) {
+                        let enemySpeed = 1.0 + (levelNum * 0.2); // Level 15: Slime super lincah (kecepatan 4x lipat)
+                        enemies.push(new Enemy(currentX + 50, VIRTUAL_HEIGHT - 64, 'slime', 50 + Math.floor(pseudoRandom() * 100), enemySpeed));
+                    }
+                    
+                    // Kemunculan Duri Statis di lantai
+                    if (pseudoRandom() < 0.25 + (levelNum * 0.06)) {
+                        spikes.push(new Spike(currentX + segmentWidth - 60, VIRTUAL_HEIGHT - 58, 32));
+                    }
+
+                    // Koin Emas
+                    let numCoins = 2 + Math.floor(pseudoRandom() * 3);
+                    for (let i = 0; i < numCoins; i++) {
+                        coins.push(new Coin(currentX + 30 + (i * 40), VIRTUAL_HEIGHT - 80));
+                    }
+
+                    currentX += segmentWidth;
+                } 
+                else if (rand < 0.55) {
+                    // Segmen 2: Platform Melayang (Sangat Sempit & Cepat di Level Tinggi!)
+                    let platWidth = 110 + Math.floor(pseudoRandom() * 90);
+                    
+                    // Level 11-15: Platform dipangkas menjadi super sempit (75px - 130px)
+                    if (levelNum >= 11) {
+                        platWidth = 75 + Math.floor(pseudoRandom() * 55); 
+                    }
+
+                    let platY = VIRTUAL_HEIGHT - 120 - Math.floor(pseudoRandom() * 130);
+                    
+                    let isMoving = (pseudoRandom() < 0.15 + (levelNum * 0.07));
+                    let moveRange = 60 + Math.floor(pseudoRandom() * 70);
+                    
+                    // Kecepatan platform meningkat drastis di level tinggi
+                    let moveSpeed = 1.0 + (levelNum * 0.22); 
+                    
+                    platforms.push(new Platform(currentX, platY, platWidth, 20, isMoving, moveRange, moveSpeed));
+                    
+                    // Level tinggi (Level 11+): Meletakkan DURI di atas platform melayang kecil!
+                    if (levelNum >= 11 && pseudoRandom() < 0.4) {
+                        spikes.push(new Spike(currentX + (platWidth / 2) - 16, platY - 18, 32));
+                    } else {
+                        // Jika tidak ada duri, letakkan koin
+                        coins.push(new Coin(currentX + (platWidth / 2) - 8, platY - 40));
+                    }
+
+                    // Musuh Kelelawar Terbang (Lebih agresif di level tinggi)
+                    if (levelNum >= 3 && pseudoRandom() < 0.25 + (levelNum * 0.06)) {
+                        let batSpeed = 1.5 + (levelNum * 0.25); // Kecepatan terbang ekstrem di level tinggi
+                        enemies.push(new Enemy(currentX + (platWidth / 2) - 14, platY - 110, 'bat', 80 + Math.floor(pseudoRandom() * 80), batSpeed));
+                    }
+
+                    currentX += platWidth + gapWidth;
+                } 
+                else if (rand < 0.8) {
+                    // Segmen 3: Duri Bergerak Vertikal
+                    let segmentWidth = 260;
+                    platforms.push(new Platform(currentX, VIRTUAL_HEIGHT - 40, segmentWidth, 40));
+
+                    // Duri bergerak aktif naik turun
+                    let isMovingSpike = (levelNum >= 4 && pseudoRandom() < 0.4 + (levelNum * 0.05));
+                    let spikeY = VIRTUAL_HEIGHT - 100 - Math.floor(pseudoRandom() * 80);
+                    
+                    // Rentang gerak duri bertambah tinggi di level ekstrem
+                    let spikeRange = 50 + (levelNum * 6);
+                    spikes.push(new Spike(currentX + 90, spikeY, 32, isMovingSpike, spikeRange));
+
+                    coins.push(new Coin(currentX + 40, VIRTUAL_HEIGHT - 80));
+                    coins.push(new Coin(currentX + 180, VIRTUAL_HEIGHT - 80));
+
+                    currentX += segmentWidth + gapWidth;
+                } 
+                else {
+                    // Segmen 4: Jembatan Gantung Bergerak Melintasi Jurang Lebar
+                    let platWidth = 90;
+                    if (levelNum >= 11) platWidth = 70; // Lebih sempit di level tinggi!
+                    let platY = VIRTUAL_HEIGHT - 140;
+                    
+                    let jembatanSpeed = 1.2 + (levelNum * 0.15);
+                    platforms.push(new Platform(currentX + (gapWidth / 2), platY, platWidth, 20, true, 50, jembatanSpeed));
+                    coins.push(new Coin(currentX + (gapWidth / 2) + (platWidth / 2) - 8, platY - 45));
+
+                    currentX += gapWidth + platWidth + gapWidth;
+                }
+            }
+
+            // Zona Selesai Aman (Safe End Zone)
+            platforms.push(new Platform(mapWidth - 450, VIRTUAL_HEIGHT - 40, 450, 40));
+            flag = new Flag(mapWidth - 150, VIRTUAL_HEIGHT - 120);
+
+            cameraX = 0;
+            player.reset();
+        }
+
+        const player = new Player();
+        let cameraX = 0;
+
+        function checkCollision(rect1, rect2) {
+            return rect1.x < rect2.x + rect2.width &&
+                   rect1.x + rect1.width > rect2.x &&
+                   rect1.y < rect2.y + rect2.height &&
+                   rect1.y + rect1.height > rect2.y;
+        }
+
+        function update() {
+            if (gameState !== 'PLAYING') return;
+
+            player.update();
+
+            if (player.x < 0) player.x = 0;
+            if (player.x > mapWidth - player.width) player.x = mapWidth - player.width;
+
+            if (player.y > VIRTUAL_HEIGHT + 100) {
+                reduceLife();
+                if (lives > 0) {
+                    player.reset();
+                }
+            }
+
+            let targetCameraX = player.x - VIRTUAL_WIDTH / 2.5;
+            cameraX += (targetCameraX - cameraX) * 0.1;
+            if (cameraX < 0) cameraX = 0;
+            if (cameraX > mapWidth - VIRTUAL_WIDTH) cameraX = mapWidth - VIRTUAL_WIDTH;
+
+            let stoodOnPlatform = false;
+            platforms.forEach(platform => {
+                platform.update();
+
+                if (player.x + player.width > platform.x && player.x < platform.x + platform.width) {
+                    if (player.y + player.height >= platform.y && player.y + player.height - player.vy <= platform.y + 10) {
+                        player.y = platform.y - player.height;
+                        player.vy = 0;
+                        player.isGrounded = true;
+                        player.jumpCount = 0;
+                        stoodOnPlatform = true;
+
+                        if (platform.isMoving) {
+                            player.x += platform.moveSpeed * platform.direction;
+                        }
+                    }
+                }
+            });
+
+            if (!stoodOnPlatform) {
+                player.isGrounded = false;
+            }
+
+            coins.forEach(coin => {
+                if (!coin.collected) {
+                    coin.update();
+                    if (checkCollision(player, coin)) {
+                        coin.collected = true;
+                        score += 100;
+                        document.getElementById('score-text').textContent = score;
+                        AudioEngine.playCoin();
+                        spawnParticles(coin.x + 8, coin.y + 8, '#fbbf24', 12);
+                    }
+                }
+            });
+
+            enemies.forEach(enemy => {
+                enemy.update();
+
+                if (checkCollision(player, enemy)) {
+                    if (player.vy > 0 && player.y + player.height - player.vy < enemy.y + 12) {
+                        enemy.x = -1000; 
+                        player.vy = player.jumpStrength * 0.8;
+                        score += 200;
+                        document.getElementById('score-text').textContent = score;
+                        AudioEngine.playCoin();
+                        spawnParticles(enemy.x + enemy.width/2, enemy.y + enemy.height/2, '#ec4899', 15);
+                    } else {
+                        playerHit();
+                    }
+                }
+            });
+
+            spikes.forEach(spike => {
+                spike.update();
+                if (checkCollision(player, spike)) {
+                    playerHit();
+                }
+            });
+
+            if (flag) {
+                flag.update();
+                if (checkCollision(player, flag)) {
+                    levelCompleted();
+                }
+            }
+
+            particles.forEach((p, index) => {
+                p.update();
+                if (p.alpha <= 0) {
+                    particles.splice(index, 1);
+                }
+            });
+        }
+
+        function playerHit() {
+            if (player.invulnTimer <= 0) {
+                player.invulnTimer = 60; 
+                reduceLife();
+                AudioEngine.playHurt();
+                spawnParticles(player.x + player.width/2, player.y + player.height/2, '#ef4444', 18);
+            }
+        }
+
+        function reduceLife() {
+            lives--;
+            updateLivesUI();
+            if (lives <= 0) {
+                gameOver();
+            }
+        }
+
+        function updateLivesUI() {
+            const container = document.getElementById('hearts-container');
+            if (!container) return;
+            container.innerHTML = '';
+            for (let i = 0; i < maxLives; i++) {
+                if (i < lives) {
+                    container.innerHTML += `<span class="text-rose-500 text-lg md:text-xl filter drop-shadow">❤️</span>`;
+                } else {
+                    container.innerHTML += `<span class="text-slate-500 text-lg md:text-xl">🖤</span>`;
+                }
+            }
+        }
+
+        // Jalankan transisi acak petir kosmetik di Level 13-14
+        let lightningAlpha = 0;
+        function updateLightningEffect() {
+            if ((currentLevel === 13 || currentLevel === 14) && gameState === 'PLAYING') {
+                if (Math.random() < 0.005) {
+                    lightningAlpha = 0.8; // Efek kilat petir
+                }
+                if (lightningAlpha > 0) {
+                    lightningAlpha -= 0.05;
+                }
+            } else {
+                lightningAlpha = 0;
+            }
+        }
+
+        function levelCompleted() {
+            gameState = 'LEVEL_UP';
+            AudioEngine.playLevelUp();
+            
+            if (currentLevel < maxLevel) {
+                document.getElementById('level-complete-title').textContent = `LEVEL ${currentLevel} SELESAI!`;
+                document.getElementById('level-success-screen').classList.remove('hidden');
+            } else {
+                gameClear();
+            }
+        }
+
+        function nextLevel() {
+            currentLevel++;
+            document.getElementById('level-success-screen').classList.add('hidden');
+            loadLevel(currentLevel);
+            gameState = 'PLAYING';
+            AudioEngine.startBGM();
+        }
+
+        function gameOver() {
+            gameState = 'GAME_OVER';
+            AudioEngine.stopBGM();
+            document.getElementById('final-score-text').textContent = score;
+            document.getElementById('game-over-screen').classList.remove('hidden');
+        }
+
+        function gameClear() {
+            gameState = 'GAME_CLEAR';
+            AudioEngine.stopBGM();
+            document.getElementById('clear-score-text').textContent = score;
+            document.getElementById('game-clear-screen').classList.remove('hidden');
+        }
+
+        // Fungsi kembali ke Menu Utama dari layar mana pun
+        function goToMainMenu() {
+            gameState = 'START_MENU';
+            AudioEngine.stopBGM();
+            document.getElementById('game-hud').classList.add('hidden');
+            document.getElementById('start-menu').classList.remove('hidden');
+            document.getElementById('game-over-screen').classList.add('hidden');
+            document.getElementById('game-clear-screen').classList.add('hidden');
+            document.getElementById('level-success-screen').classList.add('hidden');
+            
+            // Render menu background sesuai level terpilih saat ini
+            loadLevel(currentLevel);
+            updateSelectedLevelUI();
+        }
+
+        function restartGame() {
+            if (gameState === 'GAME_CLEAR') {
+                currentLevel = 1;
+                score = 0;
+            }
+            lives = 3;
+            document.getElementById('score-text').textContent = score;
+            updateLivesUI();
+            
+            document.getElementById('game-over-screen').classList.add('hidden');
+            document.getElementById('game-clear-screen').classList.add('hidden');
+            document.getElementById('level-success-screen').classList.add('hidden');
+            
+            loadLevel(currentLevel);
+            gameState = 'PLAYING';
+            AudioEngine.startBGM();
+        }
+
+        function render() {
+            ctx.clearRect(0, 0, VIRTUAL_WIDTH, VIRTUAL_HEIGHT);
+
+            const theme = getThemeForLevel(currentLevel);
+
+            ctx.fillStyle = theme.sky;
+            ctx.fillRect(0, 0, VIRTUAL_WIDTH, VIRTUAL_HEIGHT);
+
+            // --- GAMBAR WATERMARK LOGO SEKOLAH DI TENAH LANGIT PERMAINAN ---
+            if (logoLoaded) {
+                ctx.save();
+                ctx.globalAlpha = 0.12; // Transparan tipis agar tidak mengganggu gameplay
+                // Posisi tengah atas
+                ctx.drawImage(schoolLogoImg, VIRTUAL_WIDTH / 2 - 120, 60, 240, 240);
+                ctx.restore();
+            }
+
+            // Lapisan Gunung Terjauh (Lambat)
+            ctx.fillStyle = theme.backLayer;
+            for (let i = 0; i < 4; i++) {
+                let x = (i * 350) - (cameraX * 0.15) % 350;
+                ctx.beginPath();
+                ctx.moveTo(x - 100, VIRTUAL_HEIGHT);
+                ctx.lineTo(x + 100, VIRTUAL_HEIGHT - 220);
+                ctx.lineTo(x + 300, VIRTUAL_HEIGHT);
+                ctx.closePath();
+                ctx.fill();
+            }
+
+            // Lapisan Bukit Menengah (Sedang)
+            ctx.fillStyle = theme.midLayer;
+            for (let i = 0; i < 5; i++) {
+                let x = (i * 260) - (cameraX * 0.4) % 260;
+                ctx.beginPath();
+                ctx.moveTo(x - 80, VIRTUAL_HEIGHT);
+                ctx.lineTo(x + 80, VIRTUAL_HEIGHT - 130);
+                ctx.lineTo(x + 240, VIRTUAL_HEIGHT);
+                ctx.closePath();
+                ctx.fill();
+            }
+
+            // Lapisan Semak (Cepat)
+            ctx.fillStyle = theme.foreLayer;
+            for (let i = 0; i < 6; i++) {
+                let x = (i * 200) - (cameraX * 0.7) % 200;
+                ctx.beginPath();
+                ctx.arc(x + 50, VIRTUAL_HEIGHT - 30, 60, 0, Math.PI * 2);
+                ctx.arc(x + 120, VIRTUAL_HEIGHT - 30, 50, 0, Math.PI * 2);
+                ctx.fill();
+            }
+
+            // Efek Badai Pasir Kosmetik (Level 11-12)
+            if (currentLevel === 11 || currentLevel === 12) {
+                ctx.fillStyle = 'rgba(217, 119, 6, 0.07)';
+                for (let i = 0; i < 5; i++) {
+                    ctx.fillRect(0, i * 110, VIRTUAL_WIDTH, 40);
+                }
+            }
+
+            ctx.save();
+            ctx.translate(-cameraX, 0);
+
+            platforms.forEach(platform => platform.draw());
+
+            coins.forEach(coin => {
+                if (!coin.collected) coin.draw();
+            });
+
+            enemies.forEach(enemy => enemy.draw());
+            spikes.forEach(spike => spike.draw());
+            
+            if (flag) {
+                flag.draw();
+            }
+            
+            player.draw();
+            particles.forEach(p => p.draw());
+
+            ctx.restore();
+
+            // Render Efek Kilatan Petir (Level 13-14)
+            updateLightningEffect();
+            if (lightningAlpha > 0) {
+                ctx.fillStyle = `rgba(255, 255, 255, ${lightningAlpha})`;
+                ctx.fillRect(0, 0, VIRTUAL_WIDTH, VIRTUAL_HEIGHT);
+            }
+        }
+
+        function resizeCanvas() {
+            const container = document.getElementById('game-container');
+            if (!container) return;
+            const rect = container.getBoundingClientRect();
+
+            // Berikan batas minimal yang masuk akal jika rect bernilai 0
+            const width = rect.width > 0 ? rect.width : VIRTUAL_WIDTH;
+            const height = rect.height > 0 ? rect.height : (width * 9 / 16);
+
+            canvas.width = width;
+            canvas.height = height;
+
+            scaleX = canvas.width / VIRTUAL_WIDTH;
+            scaleY = canvas.height / VIRTUAL_HEIGHT;
+
+            // Cegah scale bernilai 0 atau NaN
+            if (!scaleX || isNaN(scaleX)) scaleX = 1;
+            if (!scaleY || isNaN(scaleY)) scaleY = 1;
+
+            ctx.setTransform(scaleX, 0, 0, scaleY, 0, 0);
+        }
+
+        // --- LISTENER KONTROL INPUT ---
+        window.addEventListener('keydown', e => {
+            if (gameState !== 'PLAYING') return;
+            if (e.code === 'KeyA' || e.code === 'ArrowLeft') keys.left = true;
+            if (e.code === 'KeyD' || e.code === 'ArrowRight') keys.right = true;
+            if (e.code === 'Space' || e.code === 'KeyW' || e.code === 'ArrowUp') {
+                e.preventDefault();
+                player.jump();
+            }
+        });
+
+        window.addEventListener('keyup', e => {
+            if (e.code === 'KeyA' || e.code === 'ArrowLeft') keys.left = false;
+            if (e.code === 'KeyD' || e.code === 'ArrowRight') keys.right = false;
+        });
+
+        // Kontrol Sentuh HP
+        const btnLeft = document.getElementById('btn-left');
+        const btnRight = document.getElementById('btn-right');
+        const btnJump = document.getElementById('btn-jump');
+
+        function setupTouchEvents(btn, action) {
+            if (!btn) return;
+            btn.addEventListener('touchstart', e => {
+                e.preventDefault();
+                if (gameState !== 'PLAYING') return;
+                if (action === 'jump') {
+                    player.jump();
+                } else {
+                    keys[action] = true;
+                }
+            }, { passive: false });
+
+            btn.addEventListener('touchend', e => {
+                e.preventDefault();
+                if (action !== 'jump') {
+                    keys[action] = false;
+                }
+            }, { passive: false });
+        }
+
+        setupTouchEvents(btnLeft, 'left');
+        setupTouchEvents(btnRight, 'right');
+        setupTouchEvents(btnJump, 'jump');
+
+        function isTouchDevice() {
+            return ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
+        }
+
+        // --- PEMBUATAN TOMBOL BEBAS PILIH LEVEL (LEVEL SELECTOR) ---
+        function createLevelButtons() {
+            const container = document.getElementById('level-buttons-container');
+            if (!container) return;
+            container.innerHTML = '';
+
+            for (let i = 1; i <= maxLevel; i++) {
+                const btn = document.createElement('button');
+                btn.type = 'button';
+                btn.id = `lvl-btn-${i}`;
+                btn.textContent = i;
+                
+                // Styling tombol level retro yang interaktif
+                btn.className = "py-1 text-xs md:text-sm font-bold border-2 border-slate-700 hover:border-emerald-500 rounded-lg transition-all active:scale-95 text-slate-300 bg-slate-800/80 hover:bg-slate-700/80";
+                
+                btn.addEventListener('click', () => {
+                    currentLevel = i;
+                    updateSelectedLevelUI();
+                    AudioEngine.playCoin(); // Efek suara klik tombol level
+                    // Langsung muat background level tersebut di start menu secara real-time!
+                    loadLevel(currentLevel);
+                });
+
+                container.appendChild(btn);
+            }
+            updateSelectedLevelUI();
+        }
+
+        // Memperbarui visual level mana yang sedang dipilih di start menu
+        function updateSelectedLevelUI() {
+            for (let i = 1; i <= maxLevel; i++) {
+                const btn = document.getElementById(`lvl-btn-${i}`);
+                if (!btn) continue;
+
+                if (i === currentLevel) {
+                    // Tombol level aktif menyala hijau emerald terang
+                    btn.className = "py-1 text-xs md:text-sm font-bold border-2 border-emerald-400 bg-emerald-600/90 hover:bg-emerald-500 text-white rounded-lg shadow-md shadow-emerald-900/50 scale-105 transition-all";
+                } else {
+                    // Tombol tidak terpilih kembali normal
+                    btn.className = "py-1 text-xs md:text-sm font-bold border-2 border-slate-700 hover:border-emerald-500 rounded-lg transition-all active:scale-95 text-slate-300 bg-slate-800/80 hover:bg-slate-700/80";
+                }
+            }
+        }
+
+        // --- INTEGRASI PEMILIH MUSIK (MENU UTAMA & HUD) ---
+        const menuMusicSelect = document.getElementById('menu-music-select');
+        const hudMusicSelect = document.getElementById('hud-music-select');
+
+        function syncMusicSelection(trackName) {
+            AudioEngine.setTrack(trackName);
+            if (menuMusicSelect) menuMusicSelect.value = trackName;
+            if (hudMusicSelect) hudMusicSelect.value = trackName;
+        }
+
+        if (menuMusicSelect) {
+            menuMusicSelect.addEventListener('change', (e) => {
+                syncMusicSelection(e.target.value);
+            });
+        }
+        if (hudMusicSelect) {
+            hudMusicSelect.addEventListener('change', (e) => {
+                syncMusicSelection(e.target.value);
+            });
+        }
+
+        // --- KONEKSI UI TOMBOL ---
+        document.getElementById('start-btn').addEventListener('click', () => {
+            AudioEngine.init();
+            document.getElementById('start-menu').classList.add('hidden');
+            document.getElementById('game-hud').classList.remove('hidden');
+            restartGame();
+        });
+
+        document.getElementById('next-level-btn').addEventListener('click', nextLevel);
+        document.getElementById('restart-btn').addEventListener('click', restartGame);
+        document.getElementById('play-again-btn').addEventListener('click', () => {
+            currentLevel = 1;
+            score = 0;
+            restartGame();
+        });
+
+        // Tombol Kembali ke Menu Utama
+        document.getElementById('hud-home-btn').addEventListener('click', goToMainMenu);
+        document.getElementById('success-home-btn').addEventListener('click', goToMainMenu);
+        document.getElementById('fail-home-btn').addEventListener('click', goToMainMenu);
+        document.getElementById('clear-home-btn').addEventListener('click', goToMainMenu);
+
+        document.getElementById('audio-toggle').addEventListener('click', () => {
+            const isEnabled = AudioEngine.toggle();
+            document.getElementById('audio-icon').textContent = isEnabled ? '🔊' : '🔇';
+        });
+
+        // --- LISTENER UNTUK UNGGAH AUDIO KUSTOM ---
+        const audioUploadInput = document.getElementById('custom-audio-upload');
+        const bgAudioElement = document.getElementById('bg-audio');
+        const uploadStatusText = document.getElementById('upload-status-text');
+        const menuCustomOption = document.getElementById('menu-custom-option');
+        const hudCustomOption = document.getElementById('hud-custom-option');
+
+        if (audioUploadInput) {
+            audioUploadInput.addEventListener('change', function(e) {
+                const file = e.target.files[0];
+                if (file) {
+                    const fileUrl = URL.createObjectURL(file);
+                    if (bgAudioElement) {
+                        bgAudioElement.src = fileUrl;
+                        
+                        // Mengaktifkan opsi custom di dropdown
+                        if (menuCustomOption) {
+                            menuCustomOption.disabled = false;
+                            menuCustomOption.textContent = `🎵 Kustom: ${file.name.substring(0, 15)}...`;
+                        }
+                        if (hudCustomOption) {
+                            hudCustomOption.disabled = false;
+                            hudCustomOption.textContent = `🎵 Kustom: ${file.name.substring(0, 15)}...`;
+                        }
+
+                        // Alihkan lagu ke custom saat diunggah
+                        syncMusicSelection('custom');
+                        
+                        // Perbarui teks status di layar
+                        if (uploadStatusText) {
+                            uploadStatusText.textContent = `Berhasil memuat: ${file.name.substring(0, 25)}...`;
+                            uploadStatusText.className = "text-[10px] text-emerald-400 font-bold";
+                        }
+                    }
+                }
+            });
+        }
+
+        function loop() {
+            update();
+            render();
+            requestAnimationFrame(loop);
+        }
+
+        // FUNGSI INISIALISASI AMAN
+        function initGame() {
+            // Buat tombol-tombol pemilih level
+            createLevelButtons();
+            
+            // Muat database level terlebih dahulu agar render menu memiliki background
+            loadLevel(currentLevel);
+            resizeCanvas();
+            updateLivesUI();
+            
+            // Tampilkan kontrol sentuh jika di HP
+            if (isTouchDevice()) {
+                const touchControls = document.getElementById('touch-controls');
+                if (touchControls) touchControls.classList.remove('hidden');
+            }
+            
+            window.removeEventListener('resize', resizeCanvas);
+            window.addEventListener('resize', resizeCanvas);
+            
+            // Mulai putaran utama game
+            requestAnimationFrame(loop);
+        }
+
+        // Cek kesiapan dokumen
+        if (document.readyState === 'complete' || document.readyState === 'interactive') {
+            initGame();
+        } else {
+            window.addEventListener('DOMContentLoaded', initGame);
+        }
+    </script>
+</body>
+</html>
